@@ -541,12 +541,6 @@ int main(int argc, char *argv[]) {
 	}
   }
 
-  //test
-  printf("!!!!!Door_id=: %d\n", door_id);
-  printf("!!!!!Signal_id=: %d\n", signal_id);
-  printf("!!!!!Speed_id=: %d\n", speed_id);
-  //test end
-
   if(difficulty > 0) {
 	if (door_len < 8) {
 		door_len += rand() % (8 - door_len);
