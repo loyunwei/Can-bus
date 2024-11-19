@@ -42,6 +42,7 @@
 #define CAN_LEFT_SIGNAL 1
 #define CAN_RIGHT_SIGNAL 2
 #define DEFAULT_SPEED_ID 580 // 0x244
+#define DEFAULT_BOARD_ID 512 // 0x200
 #define DEFAULT_SPEED_BYTE 3 // bytes 3,4
 
 // For now, specific models will be done as constants.  Later
@@ -104,7 +105,6 @@ void blank_ic() {
 
 /* Updates speedo */
 void update_speed() {
-  //printf("UPDATE SPEED!!!!");
   SDL_Rect dial_rect;
   SDL_Point center;
   double angle = 0;
@@ -235,7 +235,6 @@ void redraw_ic() {
 
 /* Parses CAN fram and updates current_speed */
 void update_speed_status(struct canfd_frame *cf, int maxdlen) {
-  //printf("UPDATE SPEED STATUS");
   int len = (cf->len > maxdlen) ? maxdlen : cf->len;
   if(len < speed_pos + 1) return;
   if (model) {
@@ -248,8 +247,25 @@ void update_speed_status(struct canfd_frame *cf, int maxdlen) {
 	  speed = speed / 100; // speed in kilometers
 	  current_speed = speed * 0.6213751; // mph
   }
-  update_speed();
+  //update_speed();
   SDL_RenderPresent(renderer);
+}
+
+void update_board_status(struct canfd_frame *cf, int maxdlen) {
+  int len = (cf->len > maxdlen) ? maxdlen : cf->len;
+  if(len < speed_pos + 1) return;
+  if (model) {
+ 	if (!strncmp(model, "bmw", 3)) {
+		current_speed = (((cf->data[speed_pos + 1] - 208) * 256) + cf->data[speed_pos]) / 16;
+	}
+ } else {
+	 int speed = cf->data[speed_pos] << 8;
+	 speed += cf->data[speed_pos + 1];
+	 speed = speed / 100;
+	 current_speed = speed * 0.6213751;
+ }
+ update_speed();
+ SDL_RenderPresent(renderer);
 }
 
 /* Parses CAN frame and updates turn signal status */
@@ -322,7 +338,7 @@ int main(int argc, char *argv[]) {
   int running = 1;
   int nbytes, maxdlen;
   int seed = 0;
-  canid_t door_id, signal_id, speed_id;
+  canid_t door_id, signal_id, speed_id, board_id;
   SDL_Event event;
 
   while ((opt = getopt(argc, argv, "rs:dm:h?")) != -1) {
@@ -393,6 +409,7 @@ int main(int argc, char *argv[]) {
   door_id = DEFAULT_DOOR_ID;
   signal_id = DEFAULT_SIGNAL_ID;
   speed_id = DEFAULT_SPEED_ID;
+  board_id = DEFAULT_BOARD_ID;
 
   if (randomize || seed) {
 	if(randomize) seed = time(NULL);
@@ -400,6 +417,7 @@ int main(int argc, char *argv[]) {
 	door_id = (rand() % 2046) + 1;
 	signal_id = (rand() % 2046) + 1;
 	speed_id = (rand() % 2046) + 1;
+	board_id = (rand() % 2046) + 1;
 	door_pos = rand() % 9;
 	signal_pos = rand() % 9;
 	speed_pos = rand() % 8;
@@ -485,14 +503,10 @@ int main(int argc, char *argv[]) {
   	     fprintf(stderr, "Dropped packet\n");
              }
 //      if(debug) fprint_canframe(stdout, &frame, "\n", 0, maxdlen);
-
-//test
-if(frame.can_id == door_id || frame.can_id == signal_id || frame.can_id == speed_id) printf("????ID= %d\n", frame.can_id);
-//testend
-
       if(frame.can_id == door_id) update_door_status(&frame, maxdlen);
       if(frame.can_id == signal_id) update_signal_status(&frame, maxdlen);
       if(frame.can_id == speed_id) update_speed_status(&frame, maxdlen);
+      if(frame.can_id == board_id) update_board_status(&frame, maxdlen);
   }
 
   SDL_DestroyTexture(base_texture);
