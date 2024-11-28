@@ -131,8 +131,6 @@ void update_speed() {
   angle = map(current_speed_board, 0, 280, 0, 180);
   if(angle < 0) angle = 0;
   if(angle > 180) angle = 180;
-  printf("speed: %d , speed_board: %d\n", current_speed, current_speed_board);
-  if(current_speed - current_speed_board > 10 || current_speed_board - current_speed > 10) printf("MIGHT BE SPOOFING!!!!!\n");
   SDL_RenderCopyEx(renderer, needle_tex, NULL, &speed_rect, angle, &center, SDL_FLIP_NONE);
 }
 
@@ -251,7 +249,7 @@ void update_speed_status(struct canfd_frame *cf, int maxdlen) {
 	  current_speed = speed * 0.6213751; // mph
   }
   //update_speed();
-  //printf("speed: %d , speed_board: %d\n", current_speed, current_speed_board);
+  printf("speed: %d\n", current_speed);
   SDL_RenderPresent(renderer);
 }
 
@@ -268,7 +266,9 @@ void update_board_status(struct canfd_frame *cf, int maxdlen) {
 	 speed = speed / 100;
 	 current_speed_board = speed * 0.6213751;
  }
- update_speed();
+  printf("speed: %d , speed_board: %d\n", current_speed, current_speed_board);
+  if(current_speed - current_speed_board > 10 || current_speed_board - current_speed > 10) {printf("MIGHT BE SPOOFING!!!!!\n");
+ } else {update_speed();}
  SDL_RenderPresent(renderer);
 }
 
